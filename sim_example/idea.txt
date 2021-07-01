@@ -1,0 +1,7 @@
+The goal is to map scores from a given text to what the score would have been had the person read a baseline text. 
+I am working on a two-step process:
+1. Establish a map between two nodes. At present, the map is very simple (just an offset from the baseline scale). This is probably too simple for real work but fine for the moment (and how I am simulating data). Ultimately, the map could be something fancy but we can worry about that later. 
+2. Propogate information across the network. At present, this works by randomly picking a node that is connected to current node (or occasionally jumping to a new set of nodes) and doing step 1 based on the current dictionary of maps. 
+
+I think the main problem with my current approach is that I'm not effectively controlling the updating based on the quantity of informtion in a given edge. 
+
