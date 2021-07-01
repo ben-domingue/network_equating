@@ -1,18 +1,15 @@
-##initialize? maybe initalize based on mean-mean with text 1
-##quantiles? maybe look at offsets at different quantiles.
-
 
 propogate<-function(df,
                     niter=50000
                     ) {
-    ##1. get network
+    ##1. get facts about network
     net<-table(df$nm)
     nms<-strsplit(names(net),"-")
     nms<-do.call("rbind",nms)
     nbooks<-length(unique(c(nms[,1],nms[,2])))
-    ##2. prepare for estimation. 
+    ##2. prepare for estimation. i want to initialize a vector of text-specific offsets (the objects of interest in this example; i.e. the very simple "maps")
     node<-1 #always start at the first node
-    ##initialize
+    ##initialize by getting mean difference of an edge (for edges that exist and sticking with 0 for those that dont)
     bhat<-rep(0,nbooks)
     bhat.N<-rep(0,nbooks)
     for (i in 2:nbooks) {
@@ -25,7 +22,7 @@ propogate<-function(df,
             bhat[i]<-mm-m1
         }
     }
-    ##
+    ##setting up stuff for iteration
     node.counter<-rep(0,nbooks)
     b.list<-list()
     b.list[[1]]<-bhat
@@ -42,14 +39,14 @@ propogate<-function(df,
         bhat[1]<-0
         test1<-which(nms[,1]==node)
         test2<-which(nms[,2]==node)
-        subnet<-net[c(test1,test2)]
-        ii<-which(rmultinom(1,1,subnet/sum(subnet))[,1]==1)
+        subnet<-net[c(test1,test2)] #this gets the subnetwork consisting of just those nodes connected to the current focal node. 
+        ii<-which(rmultinom(1,1,subnet/sum(subnet))[,1]==1) #now i randomly pick a node in the subnet
         tmp<-df[df$nm==names(subnet)[ii],]
         txt<-strsplit(names(subnet)[ii],"-")[[1]]
         nn<-which(txt!=node)
         next.node<-as.numeric(txt[nn])
         test<-tmp$t1[1]==node
-        if (test) {
+        if (test) { #here i'm going to just get the scores on the edge in a common order
             s1<-tmp$s1
             s2<-tmp$s2
         } else {
@@ -57,11 +54,9 @@ propogate<-function(df,
             s2<-tmp$s1
         }
         ##
-        if (next.node!=1) {
-            #opt<-optim(bhat[next.node],obj,s1=s1,s2=s2,b.node=bhat[node],method="Brent",upper=100,lower=-100,...)
-            #bhat[next.node]<-opt$par
-            zz<-s2-(s1-bhat[node])
-            candidate<-mean(zz)#(sum(s2)-sum(s1-bhat[node]))/length(s2)
+        if (next.node!=1) { #don't update the base node!
+            zz<-s2-(s1-bhat[node]) #this identifies a map based on the mean difference between s2 and s1 (after mapping s1 to the base text)
+            candidate<-mean(zz) #this is the new offset estimate for the text!! but i do not update with certainty (see update.flag). this was probably silly. 
             update.flag<-rbinom(1,1,length(s2)/(length(s2)+bhat.N[next.node]))
             if (update.flag==1) {
                 bhat[next.node]<-candidate
